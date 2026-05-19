@@ -9,7 +9,6 @@ import com.example.Student_Course_Registration_System.repository.StudentReposito
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -17,80 +16,129 @@ public class StudentService {
 
     @Autowired
     private StudentRepository studentRepository;
+
     @Autowired
     private LecturerRepository lecturerRepository;
+
     @Autowired
     private AdminRepository adminRepository;
 
+    // Generate student ID
     public String generateStudentId() {
-        List<Student> students = studentRepository.findAll();
-        int max = 0;
-        for (Student s : students) {
-            try {
-                int num = Integer.parseInt(s.getStudentId().replace("S", ""));
-                if (num > max) max = num;
-            } catch (NumberFormatException ignored) {}
-        }
-        return String.format("S%03d", max + 1);
+        return studentRepository.generateId();
     }
 
+    // Add new student - returns error message or null on success
     public String addStudent(Student student) {
-        if (studentRepository.findById(student.getStudentId()).isPresent()) return "Student ID already exists";
-        for (Student s : studentRepository.findAll()) {
-            if (s.getEmail().equalsIgnoreCase(student.getEmail())) return "A student with this email already exists";
-            if (s.getPhone().equals(student.getPhone())) return "A student with this phone number already exists";
+        Student existing = studentRepository.findById(student.getStudentId());
+        if (existing != null) {
+            return "Student ID already exists";
         }
-        String crossError = checkCrossEntityEmail(student.getEmail(), null);
-        if (crossError != null) return crossError;
-        studentRepository.save(student);
-        return null;
-    }
-
-    public List<Student> getAllStudents() { return studentRepository.findAll(); }
-    public Student getStudentById(String studentId) { return studentRepository.findById(studentId).orElse(null); }
-
-    public String updateStudent(Student student) {
-        if (studentRepository.findById(student.getStudentId()).isEmpty()) return "Student not found";
-        for (Student s : studentRepository.findAll()) {
-            if (!s.getStudentId().equals(student.getStudentId())) {
-                if (s.getEmail().equalsIgnoreCase(student.getEmail())) return "A student with this email already exists";
-                if (s.getPhone().equals(student.getPhone())) return "A student with this phone number already exists";
+        List<Student> students = studentRepository.findAll();
+        for (Student s : students) {
+            if (s.getEmail().equalsIgnoreCase(student.getEmail())) {
+                return "A student with this email already exists";
+            }
+            if (s.getPhone().equals(student.getPhone())) {
+                return "A student with this phone number already exists";
             }
         }
+        // Cross-entity email check
         String crossError = checkCrossEntityEmail(student.getEmail(), null);
         if (crossError != null) return crossError;
         studentRepository.save(student);
         return null;
     }
 
-    public void deleteStudent(String studentId) {
-        if (studentRepository.findById(studentId).isEmpty()) return;
-        studentRepository.deleteById(studentId);
+    // Get all students
+    public List<Student> getAllStudents() {
+        return studentRepository.findAll();
     }
 
+    // Get student by ID
+    public Student getStudentById(String studentId) {
+        Student student = studentRepository.findById(studentId);
+        if (student == null) {
+            System.out.println("Student not found");
+        }
+        return student;
+    }
+
+    // Update student - returns error message or null on success
+    public String updateStudent(Student student) {
+        Student existing = studentRepository.findById(student.getStudentId());
+        if (existing == null) {
+            return "Student not found";
+        }
+        // Check duplicate email (exclude self)
+        List<Student> students = studentRepository.findAll();
+        for (Student s : students) {
+            if (!s.getStudentId().equals(student.getStudentId())) {
+                if (s.getEmail().equalsIgnoreCase(student.getEmail())) {
+                    return "A student with this email already exists";
+                }
+                if (s.getPhone().equals(student.getPhone())) {
+                    return "A student with this phone number already exists";
+                }
+            }
+        }
+        // Cross-entity email check
+        String crossError = checkCrossEntityEmail(student.getEmail(), null);
+        if (crossError != null) return crossError;
+        studentRepository.update(student);
+        return null;
+    }
+
+    // Delete student
+    public void deleteStudent(String studentId) {
+        Student existing = studentRepository.findById(studentId);
+        if (existing == null) {
+            System.out.println("Student not found");
+            return;
+        }
+        studentRepository.delete(studentId);
+        System.out.println("Student deleted successfully");
+    }
+
+    // Search student by name
     public List<Student> searchByName(String name) {
-        List<Student> result = new ArrayList<>();
-        for (Student s : studentRepository.findAll()) {
-            if (s.getName().toLowerCase().contains(name.toLowerCase())) result.add(s);
+        List<Student> students = studentRepository.findAll();
+        List<Student> result = new java.util.ArrayList<>();
+        for (Student student : students) {
+            if (student.getName().toLowerCase().contains(name.toLowerCase())) {
+                result.add(student);
+            }
         }
         return result;
     }
 
+    // Login student
     public Student login(String email, String password) {
-        for (Student s : studentRepository.findAll()) {
-            if (s.getEmail().equals(email) && s.getPassword().equals(password)) return s;
+        List<Student> students = studentRepository.findAll();
+        for (Student s : students) {
+            if (s.getEmail().equals(email) && s.getPassword().equals(password)) {
+                return s;
+            }
         }
         return null;
     }
 
-    public int getTotalStudents() { return (int) studentRepository.count(); }
+    // Get total student count
+    public int getTotalStudents() {
+        return studentRepository.findAll().size();
+    }
 
+    // Check if email is used by a lecturer or admin
     private String checkCrossEntityEmail(String email, String excludeStudentId) {
         for (Lecturer l : lecturerRepository.findAll()) {
-            if (l.getEmail().equalsIgnoreCase(email)) return "This email is already used by a lecturer";
+            if (l.getEmail().equalsIgnoreCase(email)) {
+                return "This email is already used by a lecturer";
+            }
         }
         for (Admin a : adminRepository.findAll()) {
-            if (a.getEmail().equalsIgnoreCase(email)) return "This email is already used by an admin";
+            if (a.getEmail().equalsIgnoreCase(email)) {
+                return "This email is already used by an admin";
+            }
         }
         return null;
     }

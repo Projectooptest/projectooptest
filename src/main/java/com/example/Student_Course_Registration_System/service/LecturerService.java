@@ -19,94 +19,149 @@ public class LecturerService {
 
     @Autowired
     private LecturerRepository lecturerRepository;
+
     @Autowired
     private ScheduleRepository scheduleRepository;
+
     @Autowired
     private StudentRepository studentRepository;
+
     @Autowired
     private AdminRepository adminRepository;
 
+    // Generate lecturer ID
     public String generateLecturerId() {
-        List<Lecturer> lecturers = lecturerRepository.findAll();
-        int max = 0;
-        for (Lecturer l : lecturers) {
-            try {
-                int num = Integer.parseInt(l.getLecturerId().replace("L", ""));
-                if (num > max) max = num;
-            } catch (NumberFormatException ignored) {}
-        }
-        return String.format("L%03d", max + 1);
+        return lecturerRepository.generateId();
     }
 
+    // Add new lecturer - returns error message or null on success
     public String addLecturer(Lecturer lecturer) {
-        if (lecturerRepository.findById(lecturer.getLecturerId()).isPresent()) return "Lecturer ID already exists";
-        for (Lecturer l : lecturerRepository.findAll()) {
-            if (l.getEmail().equalsIgnoreCase(lecturer.getEmail())) return "A lecturer with this email already exists";
-            if (l.getPhone().equals(lecturer.getPhone())) return "A lecturer with this phone number already exists";
+        Lecturer existing = lecturerRepository.findById(lecturer.getLecturerId());
+        if (existing != null) {
+            return "Lecturer ID already exists";
         }
-        String crossError = checkCrossEntityEmail(lecturer.getEmail());
-        if (crossError != null) return crossError;
-        lecturerRepository.save(lecturer);
-        return null;
-    }
-
-    public List<Lecturer> getAllLecturers() { return lecturerRepository.findAll(); }
-    public Lecturer getLecturerById(String lecturerId) { return lecturerRepository.findById(lecturerId).orElse(null); }
-
-    public String updateLecturer(Lecturer lecturer) {
-        if (lecturerRepository.findById(lecturer.getLecturerId()).isEmpty()) return "Lecturer not found";
-        for (Lecturer l : lecturerRepository.findAll()) {
-            if (!l.getLecturerId().equals(lecturer.getLecturerId())) {
-                if (l.getEmail().equalsIgnoreCase(lecturer.getEmail())) return "A lecturer with this email already exists";
-                if (l.getPhone().equals(lecturer.getPhone())) return "A lecturer with this phone number already exists";
+        List<Lecturer> lecturers = lecturerRepository.findAll();
+        for (Lecturer l : lecturers) {
+            if (l.getEmail().equalsIgnoreCase(lecturer.getEmail())) {
+                return "A lecturer with this email already exists";
+            }
+            if (l.getPhone().equals(lecturer.getPhone())) {
+                return "A lecturer with this phone number already exists";
             }
         }
+        // Cross-entity email check
         String crossError = checkCrossEntityEmail(lecturer.getEmail());
         if (crossError != null) return crossError;
         lecturerRepository.save(lecturer);
         return null;
     }
 
+    // Get all lecturers
+    public List<Lecturer> getAllLecturers() {
+        return lecturerRepository.findAll();
+    }
+
+    // Get lecturer by ID
+    public Lecturer getLecturerById(String lecturerId) {
+        Lecturer lecturer = lecturerRepository.findById(lecturerId);
+        if (lecturer == null) {
+            System.out.println("Lecturer not found");
+        }
+        return lecturer;
+    }
+
+    // Update lecturer - returns error message or null on success
+    public String updateLecturer(Lecturer lecturer) {
+        Lecturer existing = lecturerRepository.findById(lecturer.getLecturerId());
+        if (existing == null) {
+            return "Lecturer not found";
+        }
+        // Check duplicate email (exclude self)
+        List<Lecturer> lecturers = lecturerRepository.findAll();
+        for (Lecturer l : lecturers) {
+            if (!l.getLecturerId().equals(lecturer.getLecturerId())) {
+                if (l.getEmail().equalsIgnoreCase(lecturer.getEmail())) {
+                    return "A lecturer with this email already exists";
+                }
+                if (l.getPhone().equals(lecturer.getPhone())) {
+                    return "A lecturer with this phone number already exists";
+                }
+            }
+        }
+        // Cross-entity email check
+        String crossError = checkCrossEntityEmail(lecturer.getEmail());
+        if (crossError != null) return crossError;
+        lecturerRepository.update(lecturer);
+        return null;
+    }
+
+    // Delete lecturer
     public void deleteLecturer(String lecturerId) {
-        if (lecturerRepository.findById(lecturerId).isEmpty()) return;
-        List<Schedule> schedules = scheduleRepository.findByLecturerLecturerId(lecturerId);
+        Lecturer existing = lecturerRepository.findById(lecturerId);
+        if (existing == null) {
+            System.out.println("Lecturer not found");
+            return;
+        }
+        // Cascade delete: remove all schedules that reference this lecturer
+        List<Schedule> schedules = scheduleRepository.findByLecturerId(lecturerId);
         for (Schedule schedule : schedules) {
-            scheduleRepository.deleteById(schedule.getScheduleId());
+            scheduleRepository.delete(schedule.getScheduleId());
         }
-        lecturerRepository.deleteById(lecturerId);
+        lecturerRepository.delete(lecturerId);
+        System.out.println("Lecturer deleted successfully");
     }
 
+    // Search lecturer by name
     public List<Lecturer> searchByName(String name) {
+        List<Lecturer> lecturers = lecturerRepository.findAll();
         List<Lecturer> result = new ArrayList<>();
-        for (Lecturer l : lecturerRepository.findAll()) {
-            if (l.getName().toLowerCase().contains(name.toLowerCase())) result.add(l);
+        for (Lecturer lecturer : lecturers) {
+            if (lecturer.getName().toLowerCase().contains(name.toLowerCase())) {
+                result.add(lecturer);
+            }
         }
         return result;
     }
 
+    // Search lecturer by department
     public List<Lecturer> searchByDepartment(String department) {
+        List<Lecturer> lecturers = lecturerRepository.findAll();
         List<Lecturer> result = new ArrayList<>();
-        for (Lecturer l : lecturerRepository.findAll()) {
-            if (l.getDepartment().toLowerCase().contains(department.toLowerCase())) result.add(l);
+        for (Lecturer lecturer : lecturers) {
+            if (lecturer.getDepartment().toLowerCase().contains(department.toLowerCase())) {
+                result.add(lecturer);
+            }
         }
         return result;
     }
 
+    // Login lecturer
     public Lecturer login(String email, String password) {
-        for (Lecturer l : lecturerRepository.findAll()) {
-            if (l.getEmail().equals(email) && l.getPassword().equals(password)) return l;
+        List<Lecturer> lecturers = lecturerRepository.findAll();
+        for (Lecturer l : lecturers) {
+            if (l.getEmail().equals(email) && l.getPassword().equals(password)) {
+                return l;
+            }
         }
         return null;
     }
 
-    public int getTotalLecturers() { return (int) lecturerRepository.count(); }
+    // Get total lecturer count
+    public int getTotalLecturers() {
+        return lecturerRepository.findAll().size();
+    }
 
+    // Check if email is used by a student or admin
     private String checkCrossEntityEmail(String email) {
         for (Student s : studentRepository.findAll()) {
-            if (s.getEmail().equalsIgnoreCase(email)) return "This email is already used by a student";
+            if (s.getEmail().equalsIgnoreCase(email)) {
+                return "This email is already used by a student";
+            }
         }
         for (Admin a : adminRepository.findAll()) {
-            if (a.getEmail().equalsIgnoreCase(email)) return "This email is already used by an admin";
+            if (a.getEmail().equalsIgnoreCase(email)) {
+                return "This email is already used by an admin";
+            }
         }
         return null;
     }

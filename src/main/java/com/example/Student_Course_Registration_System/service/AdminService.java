@@ -26,20 +26,13 @@ public class AdminService {
 
     // Generate admin ID
     public String generateAdminId() {
-        List<Admin> admins = adminRepository.findAll();
-        int max = 0;
-        for (Admin a : admins) {
-            try {
-                int num = Integer.parseInt(a.getAdminId().replace("A", ""));
-                if (num > max) max = num;
-            } catch (NumberFormatException ignored) {}
-        }
-        return String.format("A%03d", max + 1);
+        return adminRepository.generateId();
     }
 
     // Add new admin - returns error message or null on success
     public String addAdmin(Admin admin) {
-        if (adminRepository.findById(admin.getAdminId()).isPresent()) {
+        Admin existing = adminRepository.findById(admin.getAdminId());
+        if (existing != null) {
             return "Admin ID already exists";
         }
         List<Admin> admins = adminRepository.findAll();
@@ -51,23 +44,34 @@ public class AdminService {
                 return "An admin with this phone number already exists";
             }
         }
+        // Cross-entity email check
         String crossError = checkCrossEntityEmail(admin.getEmail());
         if (crossError != null) return crossError;
         adminRepository.save(admin);
         return null;
     }
 
-    public List<Admin> getAllAdmins() { return adminRepository.findAll(); }
+    // Get all admins
+    public List<Admin> getAllAdmins() {
+        return adminRepository.findAll();
+    }
 
+    // Get admin by ID
     public Admin getAdminById(String adminId) {
-        return adminRepository.findById(adminId).orElse(null);
+        Admin admin = adminRepository.findById(adminId);
+        if (admin == null) {
+            System.out.println("Admin not found");
+        }
+        return admin;
     }
 
     // Update admin - returns error message or null on success
     public String updateAdmin(Admin admin) {
-        if (adminRepository.findById(admin.getAdminId()).isEmpty()) {
+        Admin existing = adminRepository.findById(admin.getAdminId());
+        if (existing == null) {
             return "Admin not found";
         }
+        // Check duplicate email (exclude self)
         List<Admin> admins = adminRepository.findAll();
         for (Admin a : admins) {
             if (!a.getAdminId().equals(admin.getAdminId())) {
@@ -79,28 +83,42 @@ public class AdminService {
                 }
             }
         }
+        // Cross-entity email check
         String crossError = checkCrossEntityEmail(admin.getEmail());
         if (crossError != null) return crossError;
-        adminRepository.save(admin);
+        adminRepository.update(admin);
         return null;
     }
 
+    // Delete admin
     public void deleteAdmin(String adminId) {
-        if (adminRepository.findById(adminId).isEmpty()) return;
-        if (adminRepository.findAll().size() == 1) return;
-        adminRepository.deleteById(adminId);
+        Admin existing = adminRepository.findById(adminId);
+        if (existing == null) {
+            System.out.println("Admin not found");
+            return;
+        }
+        if (adminRepository.findAll().size() == 1) {
+            System.out.println("Cannot delete last admin");
+            return;
+        }
+        adminRepository.delete(adminId);
+        System.out.println("Admin deleted successfully");
     }
 
+    // Login admin - checks both email and password
     public Admin login(String email, String password) {
         List<Admin> admins = adminRepository.findAll();
         for (Admin admin : admins) {
-            if (admin.getEmail().equals(email) && admin.getPassword().equals(password)) {
+            if (admin.getEmail().equals(email) &&
+                    admin.getPassword().equals(password)) {
                 return admin;
             }
         }
+        System.out.println("Invalid email or password");
         return null;
     }
 
+    // Search admin by name
     public List<Admin> searchByName(String name) {
         List<Admin> admins = adminRepository.findAll();
         List<Admin> result = new ArrayList<>();
@@ -112,14 +130,22 @@ public class AdminService {
         return result;
     }
 
-    public int getTotalAdmins() { return (int) adminRepository.count(); }
+    // Get total admin count
+    public int getTotalAdmins() {
+        return adminRepository.findAll().size();
+    }
 
+    // Check if email is used by a student or lecturer
     private String checkCrossEntityEmail(String email) {
         for (Student s : studentRepository.findAll()) {
-            if (s.getEmail().equalsIgnoreCase(email)) return "This email is already used by a student";
+            if (s.getEmail().equalsIgnoreCase(email)) {
+                return "This email is already used by a student";
+            }
         }
         for (Lecturer l : lecturerRepository.findAll()) {
-            if (l.getEmail().equalsIgnoreCase(email)) return "This email is already used by a lecturer";
+            if (l.getEmail().equalsIgnoreCase(email)) {
+                return "This email is already used by a lecturer";
+            }
         }
         return null;
     }

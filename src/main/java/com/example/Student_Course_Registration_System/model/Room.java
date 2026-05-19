@@ -1,21 +1,11 @@
 package com.example.Student_Course_Registration_System.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-
-@Entity
-@Table(name = "rooms")
 public class Room {
 
-    @Id
     private String roomId;
     private String roomName;
     private int capacity;
     private boolean available;
-
-    // JPA requires a no-arg constructor
-    public Room() {}
 
     public Room(String roomId, String roomName, int capacity) {
         this.roomId = roomId;

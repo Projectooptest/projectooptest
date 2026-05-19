@@ -1,22 +1,13 @@
 package com.example.Student_Course_Registration_System.model;
 
 import com.example.Student_Course_Registration_System.enums.Role;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 
-@Entity
-@Table(name = "students")
 public class Student extends Person {
 
-    @Id
     private String studentId;
     private String enrollmentDate;
     private int semester;
     private String status;
-
-    // JPA requires a no-arg constructor
-    public Student() { super(); }
 
     public Student(String name, String email, String phone, String address, String password, String studentId, String enrollmentDate, int semester) {
         super(name, email, phone, address, password, Role.STUDENT);
