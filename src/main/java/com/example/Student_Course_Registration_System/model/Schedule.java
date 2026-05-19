@@ -1,14 +1,32 @@
 package com.example.Student_Course_Registration_System.model;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "schedules")
 public class Schedule {
 
+    @Id
     private String scheduleId;
+
+    @ManyToOne
+    @JoinColumn(name = "course_id")
     private Course course;
+
+    @ManyToOne
+    @JoinColumn(name = "lecturer_id")
     private Lecturer lecturer;
+
     private String day;
     private String startTime;
     private String endTime;
+
+    @ManyToOne
+    @JoinColumn(name = "room_id")
     private Room room;
+
+    // JPA requires a no-arg constructor
+    public Schedule() {}
 
     // store other reference variables
     public Schedule(String scheduleId, Course course, Lecturer lecturer, String day, String startTime, String endTime, Room room) {

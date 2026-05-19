@@ -1,14 +1,30 @@
 package com.example.Student_Course_Registration_System.model;
 
 import com.example.Student_Course_Registration_System.enums.RegistrationStatus;
+import jakarta.persistence.*;
 
+@Entity
+@Table(name = "registrations")
 public class Registration {
 
+    @Id
     private String registrationId;
+
+    @ManyToOne
+    @JoinColumn(name = "student_id")
     private Student student;
+
+    @ManyToOne
+    @JoinColumn(name = "course_id")
     private Course course;
+
     private String registrationDate;
+
+    @Enumerated(EnumType.STRING)
     private RegistrationStatus status;
+
+    // JPA requires a no-arg constructor
+    public Registration() {}
 
     public Registration(String registrationId, Student student, Course course, String registrationDate) {
         this.registrationId = registrationId;

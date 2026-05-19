@@ -1,12 +1,22 @@
 package com.example.Student_Course_Registration_System.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "course_materials")
 public class CourseMaterial {
 
+    @Id
     private String materialId;
     private String title;
     private String fileType;
     private String courseId;
     private String fileName;
+
+    // JPA requires a no-arg constructor
+    public CourseMaterial() {}
 
     public CourseMaterial(String materialId, String title, String fileType, String courseId) {
         this.materialId = materialId;

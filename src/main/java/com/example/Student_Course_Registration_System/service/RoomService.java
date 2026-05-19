@@ -14,112 +14,54 @@ public class RoomService {
     @Autowired
     private RoomRepository roomRepository;
 
-    // Add new room - returns error message or null on success
     public String addRoom(Room room) {
-        // Check if room ID already exists
-        Room existing = roomRepository.findById(room.getRoomId());
-        if (existing != null) {
-            return "Room ID already exists";
+        if (roomRepository.findById(room.getRoomId()).isPresent()) return "Room ID already exists";
+        for (Room r : roomRepository.findAll()) {
+            if (r.getRoomName().equalsIgnoreCase(room.getRoomName())) return "A room with this name already exists";
         }
-        // Check if room name already exists
-        List<Room> rooms = roomRepository.findAll();
-        for (Room r : rooms) {
-            if (r.getRoomName().equalsIgnoreCase(room.getRoomName())) {
-                return "A room with this name already exists";
+        if (room.getCapacity() <= 0) return "Room capacity must be greater than zero";
+        roomRepository.save(room);
+        return null;
+    }
+
+    public List<Room> getAllRooms() { return roomRepository.findAll(); }
+    public Room getRoomById(String roomId) { return roomRepository.findById(roomId).orElse(null); }
+    public List<Room> getAvailableRooms() { return roomRepository.findByAvailableTrue(); }
+
+    public List<Room> getAvailableRoomsByCapacity(int requiredCapacity) {
+        List<Room> result = new ArrayList<>();
+        for (Room room : roomRepository.findByAvailableTrue()) {
+            if (room.getCapacity() >= requiredCapacity) result.add(room);
+        }
+        return result;
+    }
+
+    public String updateRoom(Room room) {
+        if (roomRepository.findById(room.getRoomId()).isEmpty()) return "Room not found";
+        if (room.getCapacity() <= 0) return "Room capacity must be greater than zero";
+        for (Room r : roomRepository.findAll()) {
+            if (!r.getRoomId().equals(room.getRoomId())) {
+                if (r.getRoomName().equalsIgnoreCase(room.getRoomName())) return "A room with this name already exists";
             }
-        }
-        // Check if capacity is valid
-        if (room.getCapacity() <= 0) {
-            return "Room capacity must be greater than zero";
         }
         roomRepository.save(room);
         return null;
     }
 
-    // Get all rooms
-    public List<Room> getAllRooms() {
-        return roomRepository.findAll();
-    }
-
-    // Get room by ID
-    public Room getRoomById(String roomId) {
-        Room room = roomRepository.findById(roomId);
-        if (room == null) {
-            System.out.println("Room not found");
-        }
-        return room;
-    }
-
-    // Get all available rooms
-    public List<Room> getAvailableRooms() {
-        return roomRepository.findAvailableRooms();
-    }
-
-    // Get available rooms by capacity
-    public List<Room> getAvailableRoomsByCapacity(int requiredCapacity) {
-        List<Room> rooms = roomRepository.findAvailableRooms();
-        List<Room> result = new ArrayList<>();
-        for (Room room : rooms) {
-            if (room.getCapacity() >= requiredCapacity) {
-                result.add(room);
-            }
-        }
-        return result;
-    }
-
-    // Update room - returns error message or null on success
-    public String updateRoom(Room room) {
-        Room existing = roomRepository.findById(room.getRoomId());
-        if (existing == null) {
-            return "Room not found";
-        }
-        // Check if capacity is valid
-        if (room.getCapacity() <= 0) {
-            return "Room capacity must be greater than zero";
-        }
-        // Check duplicate room name (exclude self)
-        List<Room> rooms = roomRepository.findAll();
-        for (Room r : rooms) {
-            if (!r.getRoomId().equals(room.getRoomId())) {
-                if (r.getRoomName().equalsIgnoreCase(room.getRoomName())) {
-                    return "A room with this name already exists";
-                }
-            }
-        }
-        roomRepository.update(room);
-        return null;
-    }
-
-    // Delete room
     public void deleteRoom(String roomId) {
-        Room existing = roomRepository.findById(roomId);
-        if (existing == null) {
-            System.out.println("Room not found");
-            return;
-        }
-        // Check if room is currently in use
-        if (!existing.isAvailable()) {
-            System.out.println("Cannot delete room that is currently in use");
-            return;
-        }
-        roomRepository.delete(roomId);
-        System.out.println("Room deleted successfully");
+        Room existing = roomRepository.findById(roomId).orElse(null);
+        if (existing == null) return;
+        if (!existing.isAvailable()) return;
+        roomRepository.deleteById(roomId);
     }
 
-    // Search room by name
     public List<Room> searchByName(String name) {
-        List<Room> rooms = roomRepository.findAll();
         List<Room> result = new ArrayList<>();
-        for (Room room : rooms) {
-            if (room.getRoomName().toLowerCase().contains(name.toLowerCase())) {
-                result.add(room);
-            }
+        for (Room r : roomRepository.findAll()) {
+            if (r.getRoomName().toLowerCase().contains(name.toLowerCase())) result.add(r);
         }
         return result;
     }
 
-    // Get total room count
-    public int getTotalRooms() {
-        return roomRepository.findAll().size();
-    }
+    public int getTotalRooms() { return (int) roomRepository.count(); }
 }

@@ -1,15 +1,31 @@
 package com.example.Student_Course_Registration_System.model;
 
 import com.example.Student_Course_Registration_System.enums.Role;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.MappedSuperclass;
 
+@MappedSuperclass
 public abstract class Person {
 
+    @Column(nullable = false)
     protected String name;
+
+    @Column(nullable = false)
     protected String email;
+
     protected String phone;
     protected String address;
+
+    @Column(nullable = false)
     protected String password;
+
+    @Enumerated(EnumType.STRING)
     protected Role role;
+
+    // JPA requires a no-arg constructor
+    protected Person() {}
 
     public Person(String name, String email, String phone, String address, String password, Role role) {
         this.name = name;

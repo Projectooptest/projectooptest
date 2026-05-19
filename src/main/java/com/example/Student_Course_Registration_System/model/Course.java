@@ -1,14 +1,25 @@
 package com.example.Student_Course_Registration_System.model;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "courses")
 public class Course {
 
+    @Id
     private String courseId;
     private String courseName;
     private int credits;
     private String description;
     private int maxStudents;
     private int enrolledStudents;
+
+    @ManyToOne
+    @JoinColumn(name = "category_id")
     private CourseCategory category;
+
+    // JPA requires a no-arg constructor
+    public Course() {}
 
     // Composition - Course owns CourseCategory
     public Course(String courseId, String courseName, int credits, String description, int maxStudents, CourseCategory category) {
